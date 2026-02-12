@@ -1,0 +1,72 @@
+graph TB
+    subgraph User["👤 User / SRE"]
+        CLI["CLI (cli.js)"]
+        ChatUI["Archestra Chat UI\n:3000"]
+    end
+
+    subgraph Archestra["🏗️ Archestra Platform (Docker)"]
+        Gateway["MCP Gateway\n:9000"]
+        Orchestrator["Agent Orchestrator"]
+        PolicyEngine["Policy Engine\n& Guardrails"]
+        LLMRouter["Multi-LLM Router"]
+        
+        subgraph Agents["AI Agents"]
+            Detector["🔍 Detector Agent\nMonitor metrics\nDetect anomalies"]
+            Analyzer["🧠 Analyzer Agent\nRoot cause analysis\nCross-reference data"]
+            Remediator["🔧 Remediator Agent\nSuggest & execute fixes\nPolicy-constrained"]
+            Observer["👁️ Observer Agent\nPipeline optimization\nCost & latency analysis"]
+        end
+
+        Detector -->|incident JSON| Analyzer
+        Analyzer -->|root cause JSON| Remediator
+        Remediator -->|action result| Observer
+        Observer -.->|optimization suggestions| Orchestrator
+    end
+
+    subgraph MCPTools["⚙️ MCP Tools (Express :4000)"]
+        MetricsFetcher["📊 metrics-fetcher\nGET /metrics\nGET /metrics/history\nPOST /metrics/anomaly"]
+        LogsDB["📝 logs-db\nGET /logs\nPOST /logs\nGET /logs/stats"]
+        RemediationExec["🚀 remediation-executor\nPOST /execute\nGET /history\nGET /actions"]
+    end
+
+    subgraph DataLayer["💾 Data Layer"]
+        SQLite["SQLite (sql.js)\nLogs + Actions\nFile-backed persistence"]
+    end
+
+    subgraph Integrations["🔌 Integrations"]
+        Slack["💬 Slack\nIncident notifications"]
+        GitHub["🐙 GitHub\nIssue escalation"]
+    end
+
+    subgraph Observability["📈 Observability Stack"]
+        Prometheus["Prometheus\n:9090"]
+        Grafana["Grafana\n:3001"]
+        PromEndpoint["/prom-metrics endpoint"]
+    end
+
+    subgraph LLMs["🤖 LLM Providers"]
+        Ollama["Ollama (Local)\nFast first-pass\nllama3"]
+        OpenAI["OpenAI\nDeep analysis\ngpt-4o"]
+        Anthropic["Anthropic\nDeep analysis\nclaude-sonnet"]
+    end
+
+    CLI --> Gateway
+    ChatUI --> Gateway
+    Gateway --> Orchestrator
+    Orchestrator --> PolicyEngine
+    PolicyEngine --> Agents
+    LLMRouter --> LLMs
+
+    Detector -->|fetch| MetricsFetcher
+    Analyzer -->|query| LogsDB
+    Analyzer -->|search| GitHub
+    Remediator -->|execute| RemediationExec
+    Remediator -->|notify| Slack
+    Remediator -->|escalate| GitHub
+
+    MetricsFetcher --> SQLite
+    LogsDB --> SQLite
+    RemediationExec --> SQLite
+
+    PromEndpoint --> Prometheus
+    Prometheus --> Grafana
