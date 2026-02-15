@@ -223,19 +223,39 @@ function registerTools(server) {
         }
     });
 
-    server.tool('execute_remediation', 'Execute a remediation action. Allowed: scale_pods, restart_service, notify_slack, clear_cache, rollback_deployment, drain_node.', {
-        action: { type: 'string', description: 'Action: scale_pods, restart_service, or notify_slack' },
-        params: { type: 'object', description: 'Action parameters' },
+    server.tool('execute_remediation', 'Execute a remediation action. Allowed: scale_pods, restart_service, notify_slack, clear_cache, rollback_deployment, drain_node. Pass action name as "action" and parameters as "params" object.', {
+        action: { type: 'string', description: 'The action name to execute. Must be one of: scale_pods, restart_service, notify_slack, clear_cache, rollback_deployment, drain_node' },
+        params: { type: 'object', description: 'Action parameters (e.g. {"service":"payment-service","replicas":5})' },
         reason: { type: 'string', description: 'Reason for the action' },
-    }, async ({ action, params, reason }) => {
+    }, async (args) => {
         toolCallsCounter.inc({ tool: 'execute_remediation' });
+        // Handle multiple parameter formats from different LLMs
+        const action = args.action || args.name || args.tool || undefined;
+        const params = args.params || {};
+        const reason = args.reason || args.description || 'Agent action';
+
+        // If action is still undefined, try to find it in the args
+        if (!action) {
+            // Check if the action name was passed as a top-level key
+            const possibleActions = Object.keys(ALLOWED_ACTIONS);
+            const foundAction = possibleActions.find(a => args[a] !== undefined || Object.values(args).includes(a));
+            if (foundAction) {
+                return handleRemediation(foundAction, typeof args[foundAction] === 'object' ? args[foundAction] : params, reason);
+            }
+            return { content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Action is undefined. Please pass "action" parameter with one of: ${possibleActions.join(', ')}. Example: {"action": "restart_service", "params": {"service": "payment-service"}}` }) }] };
+        }
+
+        return handleRemediation(action, params, reason);
+    });
+
+    async function handleRemediation(action, params, reason) {
         const actionDef = ALLOWED_ACTIONS[action];
         if (!actionDef) {
             return { content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Action '${action}' not allowed. Allowed: ${Object.keys(ALLOWED_ACTIONS).join(', ')}` }) }] };
         }
         const ap = params || {};
         for (const p of actionDef.requiredParams) {
-            if (ap[p] === undefined) return { content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Missing: ${p}` }) }] };
+            if (ap[p] === undefined) return { content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Missing required parameter: ${p}. Required: ${actionDef.requiredParams.join(', ')}` }) }] };
         }
         const valErr = actionDef.validate(ap);
         if (valErr) return { content: [{ type: 'text', text: JSON.stringify({ success: false, error: valErr }) }] };
@@ -251,7 +271,7 @@ function registerTools(server) {
         } catch (e) { /* non-critical */ }
 
         return { content: [{ type: 'text', text: JSON.stringify({ success: true, action, params: ap, result, timestamp: new Date().toISOString() }, null, 2) }] };
-    });
+    }
 
     server.tool('list_actions', 'List all available remediation actions.', {}, async () => {
         toolCallsCounter.inc({ tool: 'list_actions' });
