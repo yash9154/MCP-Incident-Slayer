@@ -4,9 +4,9 @@
   "description": "AI SRE Incident Responder & Auto-Remediator built on Archestra + MCP",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node mcp-server.js",
     "mcp": "node mcp-server.js",
-    "dev": "node --watch server.js",
+    "dev": "node --watch mcp-server.js",
     "test": "jest --verbose --forceExit --detectOpenHandles",
     "cli": "node cli.js",
     "cli:local": "node cli.js --local"

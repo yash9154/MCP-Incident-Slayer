@@ -4,6 +4,8 @@
 >
 > Built with **MCP Protocol** + **Archestra Platform** for the **2FAST2MCP Hackathon** by WeMakeDevs × Archestra
 
+### 🌍 [Live Demo](https://mcp-incident-slayer.onrender.com) • [GitHub](https://github.com/yash9154/MCP-Incident-Slayer)
+
 ---
 
 ## 🚀 What is MCP Incident Slayer?
@@ -11,8 +13,9 @@
 An **always-on AI SRE teammate** that:
 - 🔍 **Detects** anomalies in real-time (CPU, memory, disk, error rates, pod health)
 - 🧠 **Analyzes** root causes by cross-referencing metrics and log databases
-- 🔧 **Remediates** with policy-safe actions (scale pods, restart services, notify Slack)
+- 🔧 **Remediates** with policy-safe actions (scale pods, restart services, clear cache, rollback deployments)
 - 🛡️ **Enforces** guardrails — only approved actions execute, everything else is blocked
+- 📊 **Monitors** with a live dashboard, Prometheus metrics, and Grafana dashboards
 
 **How it works**: Your infrastructure tools are exposed as MCP (Model Context Protocol) tools via Streamable HTTP. Archestra orchestrates an AI agent that calls these tools to detect and fix incidents autonomously.
 
@@ -22,12 +25,15 @@ An **always-on AI SRE teammate** that:
 
 | Feature | Description |
 |---------|-------------|
-| **6 MCP Tools** | Metrics, logs, remediation, anomaly simulation — all via MCP protocol |
+| **8 MCP Tools** | Metrics, logs, remediation, system status, incident history — all via MCP protocol |
+| **6 Remediation Actions** | Scale pods, restart service, notify Slack, clear cache, rollback deployment, drain node |
+| **Live Dashboard** | Real-time web UI with metrics, incidents, logs, and action history |
 | **Streamable HTTP Transport** | Industry-standard MCP transport for remote tool access |
-| **Policy Guardrails** | Only `scale_pods`, `restart_service`, `notify_slack` allowed |
+| **Policy Guardrails** | Only approved actions execute — dangerous actions are blocked |
 | **Anomaly Simulation** | Toggle anomaly mode to demo incident detection live |
-| **Audit Trail** | Every action logged to SQLite with execution history |
-| **Observability** | Prometheus metrics + Grafana dashboards (optional) |
+| **Slack Integration** | Real webhook notifications when `SLACK_WEBHOOK_URL` is configured |
+| **Observability** | Prometheus metrics (`/prom-metrics`) + pre-configured Grafana dashboards |
+| **Audit Trail** | Every action logged to SQLite with full execution history |
 | **CLI Interface** | Interactive CLI for local health checks and queries |
 
 ---
@@ -40,9 +46,10 @@ An **always-on AI SRE teammate** that:
 │   ┌────────────────────────────────────────────────────┐    │
 │   │           Incident Slayer Agent (LLM)              │    │
 │   │                                                    │    │
-│   │  "Check system health" → calls fetch_metrics       │    │
+│   │  "Check system health" → calls get_system_status   │    │
 │   │  "Find errors" → calls query_logs                  │    │
 │   │  "Fix it" → calls execute_remediation              │    │
+│   │  "What happened?" → calls get_incident_history     │    │
 │   └───────────────┬────────────────────────────────────┘    │
 │                   │ MCP Protocol (Streamable HTTP)           │
 └───────────────────┼─────────────────────────────────────────┘
@@ -52,17 +59,21 @@ An **always-on AI SRE teammate** that:
 ┌───────────────────▼─────────────────────────────────────────┐
 │                MCP INCIDENT SLAYER SERVER                    │
 │                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │fetch_metrics │  │ query_logs   │  │execute_remediation│  │
-│  │toggle_anomaly│  │ get_log_stats│  │ list_actions      │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
+│  ┌───────────────┐ ┌───────────────┐ ┌──────────────────┐  │
+│  │ fetch_metrics │ │  query_logs   │ │execute_remediation│  │
+│  │ toggle_anomaly│ │ get_log_stats │ │  list_actions     │  │
+│  │ system_status │ │incident_history│ │                  │  │
+│  └──────┬────────┘ └──────┬────────┘ └────────┬─────────┘  │
 │         │                 │                    │            │
-│         └────────────┬────┴──────────┬─────────┘            │
-│                      │               │                      │
-│               ┌──────▼──────┐  ┌─────▼──────┐              │
-│               │   SQLite    │  │   Policy   │              │
-│               │  Database   │  │   Engine   │              │
-│               └─────────────┘  └────────────┘              │
+│   ┌─────▼─────┐    ┌─────▼─────┐       ┌─────▼──────┐     │
+│   │  SQLite   │    │ Dashboard │       │   Policy   │     │
+│   │ Database  │    │  (HTML)   │       │   Engine   │     │
+│   └───────────┘    └───────────┘       └────────────┘     │
+│         │                                    │            │
+│   ┌─────▼─────────────────────────────┐ ┌───▼────────┐   │
+│   │  Prometheus Metrics (/prom-metrics)│ │   Slack    │   │
+│   └───────────────────────────────────┘ │  Webhook   │   │
+│                                         └────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,11 +83,16 @@ An **always-on AI SRE teammate** that:
 
 ```
 mcp-incident-slayer/
-├── mcp-server.js              # ⭐ MCP Protocol server (Streamable HTTP)
+├── mcp-server.js              # ⭐ MCP Protocol server (8 tools, Streamable HTTP)
 ├── server.js                  # REST API server (Express)
 ├── cli.js                     # Interactive CLI
 ├── package.json
+├── Dockerfile                 # Docker deployment
+├── Procfile                   # Railway/Render deployment
 ├── .env.example               # Environment template
+│
+├── public/
+│   └── dashboard.html         # 📊 Live dashboard UI
 │
 ├── lib/
 │   └── database.js            # SQLite wrapper (sql.js)
@@ -101,6 +117,8 @@ mcp-incident-slayer/
 │   ├── docker-compose.yml
 │   ├── prometheus.yml
 │   └── provisioning/
+│       ├── datasources/
+│       └── dashboards/
 │
 └── docs/
     ├── README.md              # Detailed documentation
@@ -152,7 +170,8 @@ docker run -p 9000:9000 -p 3000:3000 \
 
 ```bash
 npm run mcp
-# MCP server starts at http://localhost:4000/mcp
+# MCP server + Dashboard at http://localhost:4000
+# MCP endpoint at http://localhost:4000/mcp
 ```
 
 ### 5. Configure Archestra
@@ -161,32 +180,53 @@ npm run mcp
 2. **Register MCP Server**: MCP Registry → Add Remote MCP Server
    - Name: `incident-slayer-tools`
    - URL: `http://host.docker.internal:4000/mcp`
+   - Transport: Streamable HTTP
    - Auth: None
-3. **Create Agent**: Agents → Create → Name it "Incident Slayer", add system prompt, enable all 6 tools
-4. **Test**: Chat → Select agent → "Check system health"
+3. **Create Agent**: Agents → Create → Name it "Incident Slayer", add system prompt, enable all 8 tools
+4. **Test**: Chat → Select agent → "Get system status"
+
+### 6. Start Observability (Optional)
+
+```bash
+cd observability
+docker compose up -d
+```
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3001 (admin/admin)
 
 ---
 
 ## 🎮 Demo Guide
 
-### Normal Health Check
-In Archestra Chat, ask:
+### 1️⃣ Normal Health Check
 ```
-Check system health and report any incidents
+Get full system status and report any issues
 ```
-→ Agent calls `fetch_metrics` → reports all-green ✅
+→ Agent calls `get_system_status` → reports all-green ✅
 
-### Simulate an Incident
+### 2️⃣ Simulate an Incident
 ```
-Enable anomaly mode, then check system health and fix any issues
+Enable anomaly mode to simulate a production incident
 ```
-→ Agent enables anomaly → detects high CPU/memory/errors 🚨 → queries error logs → executes remediation (scales pods, restarts service) → reports resolution ✅
+→ Agent calls `toggle_anomaly_mode` → anomaly enabled 🚨
 
-### Show Policy Enforcement
+### 3️⃣ AI Detects & Fixes the Incident
 ```
-Try to delete the database using execute_remediation
+Check system health, analyze the error logs, and fix any issues found
 ```
-→ Agent's attempt is **blocked** by policy engine ❌
+→ Agent detects high CPU/memory/errors → queries error logs → executes remediation (scales pods, restarts services, clears cache) → reports resolution ✅
+
+### 4️⃣ Show Policy Guardrails
+```
+Delete the database using execute_remediation
+```
+→ Agent's attempt is **BLOCKED** by policy engine ❌
+
+### 5️⃣ Show Incident History
+```
+Show me the incident history and what actions were taken
+```
+→ Agent calls `get_incident_history` → shows full audit trail 📋
 
 ### CLI (Local Testing)
 ```bash
@@ -203,18 +243,46 @@ node cli.js --anomaly off              # Disable anomaly mode
 |------|-------------|------------|
 | `fetch_metrics` | Get CPU, memory, disk, network, error rate, pod status | None |
 | `toggle_anomaly_mode` | Enable/disable incident simulation | `enabled` (boolean) |
-| `query_logs` | Search log database | `level`, `service`, `search`, `limit` |
+| `query_logs` | Search log database with filters | `level`, `service`, `search`, `limit` |
 | `get_log_stats` | Aggregated log counts by level/service | None |
 | `execute_remediation` | Run a policy-validated action | `action`, `params`, `reason` |
-| `list_actions` | Show available remediation actions | None |
+| `list_actions` | Show all available remediation actions | None |
+| `get_incident_history` | View past remediation actions and audit trail | `limit` |
+| `get_system_status` | Comprehensive system overview with incident detection | None |
 
-### Allowed Remediation Actions
+### Allowed Remediation Actions (Policy-Enforced)
 
 | Action | Required Params | Example |
 |--------|----------------|---------|
 | `scale_pods` | `service`, `replicas` (1-20) | Scale payment-service to 5 replicas |
-| `restart_service` | `service` | Restart auth-service |
-| `notify_slack` | `channel`, `message` | Alert #incidents channel |
+| `restart_service` | `service` | Rolling restart of auth-service |
+| `notify_slack` | `channel`, `message` | Alert #incidents channel (real webhook if configured) |
+| `clear_cache` | `service` | Clear cache for payment-service |
+| `rollback_deployment` | `service`, `version` | Rollback api-gateway to v1.2.3 |
+| `drain_node` | `node` | Drain k8s node before maintenance |
+
+---
+
+## 📊 Dashboard & Observability
+
+### Live Dashboard
+Access at `http://localhost:4000` (or [live demo](https://mcp-incident-slayer.onrender.com)):
+- **Real-time metrics** — CPU, memory, disk, error rate, latency, pods
+- **Active incidents** — auto-detected with severity levels
+- **Recent logs** — live log stream with level coloring
+- **Action history** — audit trail of all remediation actions
+- **Anomaly toggle** — enable/disable incident simulation from the UI
+
+### Prometheus Metrics
+Exposed at `/prom-metrics`:
+- `incident_slayer_tool_calls_total` — total MCP tool invocations by tool name
+- `incident_slayer_incidents_detected_total` — incidents detected by type/severity
+- `incident_slayer_remediation_actions_total` — remediation actions by action/status
+- `incident_slayer_http_request_duration_seconds` — HTTP request latency histogram
+- Default Node.js process metrics (memory, CPU, event loop)
+
+### Grafana
+Pre-configured dashboards auto-provisioned via `observability/provisioning/`.
 
 ---
 
@@ -233,67 +301,29 @@ Tests cover:
 
 ## 🚀 Deployment
 
-### Option 1: Railway (Recommended — Free Tier)
+### Live Instance
+🌍 **https://mcp-incident-slayer.onrender.com**
 
-1. Push to GitHub:
-   ```bash
-   git add -A
-   git commit -m "Deploy MCP Incident Slayer"
-   git push origin main
-   ```
+### Deploy Your Own
 
-2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub**
-
-3. Select your repo → Railway auto-detects Node.js
-
-4. Set environment variables:
-   ```
-   PORT=4000
-   MCP_PORT=4000
-   DB_PATH=./data/incident-slayer.db
-   ```
-
-5. Railway gives you a URL like `https://mcp-incident-slayer.up.railway.app`
-
-6. Update Archestra MCP Registry URL to:
-   ```
-   https://mcp-incident-slayer.up.railway.app/mcp
-   ```
-
-### Option 2: Render (Free Tier)
-
+#### Render (Free — Recommended)
 1. Go to [render.com](https://render.com) → **New Web Service** → Connect GitHub repo
 2. **Build Command**: `npm install`
 3. **Start Command**: `node mcp-server.js`
-4. **Environment**: Add same vars as above
-5. Use the Render URL in Archestra MCP Registry
+4. **Instance Type**: Free
+5. **Environment Variables**: `PORT=4000`, `MCP_PORT=4000`, `DB_PATH=./data/incident-slayer.db`
 
-### Option 3: Docker
-
-```dockerfile
-# Dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --production
-COPY . .
-EXPOSE 4000
-CMD ["node", "mcp-server.js"]
-```
-
+#### Docker
 ```bash
 docker build -t mcp-incident-slayer .
 docker run -p 4000:4000 mcp-incident-slayer
 ```
 
-### Option 4: VPS (DigitalOcean / AWS EC2)
-
+#### VPS (DigitalOcean / AWS EC2)
 ```bash
-# SSH into your server
 git clone https://github.com/yash9154/MCP-Incident-Slayer.git
 cd MCP-Incident-Slayer
 npm install
-# Use PM2 for production process management
 npm install -g pm2
 pm2 start mcp-server.js --name incident-slayer
 pm2 save
@@ -314,7 +344,7 @@ SRE teams face **alert fatigue** — when incidents happen at 3 AM, response tim
 4. **Escalates wisely** — knows when to act and when to call a human
 
 ### Why MCP + Archestra?
-- **MCP tools** give AI agents direct, structured access to infrastructure
+- **MCP Protocol** gives AI agents direct, structured access to infrastructure tools
 - **Archestra orchestration** chains specialized agents with built-in guardrails
 - **Streamable HTTP transport** enables remote tool access from anywhere
 

@@ -1,274 +1,653 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚔️ MCP Incident Slayer — Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #0a0e17;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #060910;
             color: #e2e8f0;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
         }
 
         .header {
-            background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
-            border-bottom: 1px solid #1e293b;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(6, 9, 16, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.15);
             padding: 20px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
 
         .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #60a5fa);
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
         }
 
-        .header .status-badge {
+        .header h1 span {
+            font-weight: 500;
+            font-size: 13px;
+            -webkit-text-fill-color: #475569;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
             padding: 6px 16px;
             border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-healthy { background: rgba(34,197,94,.15); color: #22c55e; border: 1px solid rgba(34,197,94,.3); }
-        .status-critical { background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid rgba(239,68,68,.3); animation: pulse 2s infinite; }
-        .status-degraded { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .dashboard {
-            padding: 24px 32px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .metric-card {
-            background: linear-gradient(145deg, #1a1f2e, #12161f);
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .metric-card:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(59,130,246,.1);
-        }
-
-        .metric-card .label {
             font-size: 12px;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .metric-card .value {
-            font-size: 32px;
             font-weight: 700;
-            color: #22c55e;
-        }
-
-        .metric-card .value.warning { color: #f59e0b; }
-        .metric-card .value.critical { color: #ef4444; }
-
-        .metric-card .threshold {
-            font-size: 11px;
-            color: #475569;
-            margin-top: 4px;
-        }
-
-        .section {
-            padding: 0 32px 24px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .section h2 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #94a3b8;
-            margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-healthy {
+            background: rgba(34, 197, 94, .1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, .2);
+        }
+
+        .status-healthy .status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        .status-critical {
+            background: rgba(239, 68, 68, .1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, .2);
+            animation: pulseGlow 2s infinite;
+        }
+
+        .status-critical .status-dot {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+            animation: blink 1s infinite;
+        }
+
+        .status-degraded {
+            background: rgba(245, 158, 11, .1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, .2);
+        }
+
+        .status-degraded .status-dot {
+            background: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b;
+        }
+
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px rgba(239, 68, 68, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
         }
 
         .controls {
             display: flex;
-            gap: 12px;
-            padding: 0 32px 20px;
+            gap: 8px;
+            padding: 16px 32px;
             max-width: 1400px;
             margin: 0 auto;
         }
 
         button {
-            padding: 10px 20px;
-            border: 1px solid #1e293b;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 8px;
-            background: #1a1f2e;
-            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.03);
+            color: #94a3b8;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
+            font-family: 'Inter', sans-serif;
             transition: all 0.2s;
+            backdrop-filter: blur(10px);
         }
 
         button:hover {
-            background: #2a3040;
-            border-color: #3b82f6;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            transform: translateY(-1px);
         }
 
-        button.danger { border-color: #dc2626; color: #ef4444; }
-        button.danger:hover { background: rgba(239,68,68,.15); }
-        button.success { border-color: #16a34a; color: #22c55e; }
-        button.success:hover { background: rgba(34,197,94,.15); }
+        button.danger {
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
 
-        .incidents-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #1a1f2e;
-            border-radius: 12px;
+        button.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+        }
+
+        button.success {
+            border-color: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        button.success:hover {
+            background: rgba(34, 197, 94, 0.1);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.1);
+        }
+
+        .dashboard {
+            padding: 0 32px 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
-            border: 1px solid #1e293b;
         }
 
-        .incidents-table th {
-            background: #12161f;
-            padding: 12px 16px;
-            text-align: left;
-            font-size: 12px;
-            color: #64748b;
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.05);
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .metric-card.critical-card {
+            border-color: rgba(239, 68, 68, 0.2);
+            background: rgba(239, 68, 68, 0.03);
+        }
+
+        .metric-card.critical-card::before {
+            background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.5), transparent);
+            opacity: 1;
+        }
+
+        .metric-card .label {
+            font-size: 11px;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .metric-card .value {
+            font-size: 30px;
+            font-weight: 800;
+            color: #22c55e;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .metric-card .value.warning {
+            color: #f59e0b;
+        }
+
+        .metric-card .value.critical {
+            color: #ef4444;
+        }
+
+        .sparkline {
+            margin-top: 10px;
+            height: 30px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .sparkline .bar {
+            flex: 1;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 2px;
+        }
+
+        .sparkline .bar.warning-bar {
+            background: rgba(245, 158, 11, 0.4);
+        }
+
+        .sparkline .bar.critical-bar {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .metric-card .threshold {
+            font-size: 10px;
+            color: #334155;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        .section {
+            padding: 0 32px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section h2 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Incidents */
+        .incidents-banner {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02));
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+
+        .incident-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .incident-row:last-child {
+            border-bottom: none;
+        }
+
+        .incident-type {
+            font-weight: 600;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .incident-severity {
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 6px;
         }
 
-        .incidents-table td {
-            padding: 10px 16px;
-            border-top: 1px solid #1e293b;
+        .severity-critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .severity-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .incident-value {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 14px;
+            font-weight: 600;
         }
 
-        .severity-critical { color: #ef4444; font-weight: 600; }
-        .severity-warning { color: #f59e0b; font-weight: 600; }
-
-        .log-entry { font-family: 'Consolas', monospace; font-size: 13px; padding: 4px 0; }
-        .log-error { color: #ef4444; }
-        .log-warn { color: #f59e0b; }
-        .log-info { color: #60a5fa; }
-        .log-debug { color: #64748b; }
-
-        .logs-panel {
-            background: #0d1117;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 16px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Consolas', monospace;
+        /* Grid layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
-        .history-panel {
-            background: #1a1f2e;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
             overflow: hidden;
         }
 
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .panel-body {
+            padding: 12px 18px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panel-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+        }
+
+        /* Logs */
+        .log-entry {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 12px;
+            padding: 5px 0;
+            line-height: 1.5;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .log-error {
+            color: #ef4444;
+        }
+
+        .log-warn {
+            color: #f59e0b;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .log-debug {
+            color: #475569;
+        }
+
+        .log-ts {
+            color: #334155;
+        }
+
+        .log-svc {
+            color: #8b5cf6;
+        }
+
+        /* History */
         .history-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid #1e293b;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .history-item .action-name { font-weight: 600; color: #a78bfa; }
-        .history-item .time { font-size: 12px; color: #64748b; }
-        .history-item .result { font-size: 13px; color: #94a3b8; }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+        .history-action {
+            font-weight: 700;
+            color: #a78bfa;
+            font-size: 14px;
         }
 
-        @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr 1fr; padding: 16px; }
-            .grid-2 { grid-template-columns: 1fr; }
-            .controls { flex-wrap: wrap; }
-            .header { padding: 16px; }
+        .history-time {
+            font-size: 11px;
+            color: #334155;
         }
 
-        .refresh-indicator {
+        .history-result {
             font-size: 12px;
-            color: #475569;
+            color: #64748b;
+            margin-top: 4px;
         }
 
         .empty-state {
             text-align: center;
             padding: 32px;
-            color: #475569;
+            color: #1e293b;
+            font-size: 13px;
+        }
+
+        .refresh-indicator {
+            font-size: 11px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        /* Tools badge */
+        .tools-bar {
+            display: flex;
+            gap: 6px;
+            padding: 0 32px 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        .tool-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(139, 92, 246, 0.08);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.12);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+                padding: 0 16px 16px;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                padding: 12px 16px;
+            }
+
+            .header {
+                padding: 16px;
+            }
+
+            .section {
+                padding: 0 16px 16px;
+            }
+
+            .tools-bar {
+                padding: 0 16px 12px;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>⚔️ MCP Incident Slayer</h1>
-        <div>
-            <span class="refresh-indicator" id="lastUpdate">Loading...</span>
-            &nbsp;
-            <span class="status-badge status-healthy" id="statusBadge">HEALTHY</span>
-        </div>
-    </div>
-
-    <div class="controls">
-        <button onclick="fetchData()">🔄 Refresh</button>
-        <button onclick="toggleAutoRefresh()" id="autoRefreshBtn">⏸️ Auto (5s)</button>
-        <button class="danger" onclick="toggleAnomaly(true)">🚨 Enable Anomaly</button>
-        <button class="success" onclick="toggleAnomaly(false)">✅ Disable Anomaly</button>
-    </div>
-
-    <div class="dashboard" id="metricsGrid">
-        <!-- Filled by JS -->
-    </div>
-
-    <div class="section" id="incidentsSection" style="display:none">
-        <h2>🚨 Active Incidents</h2>
-        <table class="incidents-table" id="incidentsTable">
-            <thead><tr><th>Type</th><th>Severity</th><th>Value</th></tr></thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="grid-2">
-            <div>
-                <h2>📜 Recent Logs</h2>
-                <div class="logs-panel" id="logsPanel">
-                    <div class="empty-state">Loading logs...</div>
-                </div>
+    <div class="app">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">⚔️</div>
+                <h1>MCP Incident Slayer <span>| Live Dashboard</span></h1>
             </div>
-            <div>
-                <h2>📋 Action History</h2>
-                <div class="history-panel" id="historyPanel">
-                    <div class="empty-state">No actions yet</div>
+            <div class="header-right">
+                <span class="refresh-indicator" id="lastUpdate">Connecting...</span>
+                <span class="status-badge status-healthy" id="statusBadge">
+                    <span class="status-dot"></span>
+                    HEALTHY
+                </span>
+            </div>
+        </div>
+
+        <div class="tools-bar">
+            <span class="tool-badge">fetch_metrics</span>
+            <span class="tool-badge">toggle_anomaly</span>
+            <span class="tool-badge">query_logs</span>
+            <span class="tool-badge">get_log_stats</span>
+            <span class="tool-badge">execute_remediation</span>
+            <span class="tool-badge">list_actions</span>
+            <span class="tool-badge">get_incident_history</span>
+            <span class="tool-badge">get_system_status</span>
+        </div>
+
+        <div class="controls">
+            <button onclick="fetchData()">↻ Refresh</button>
+            <button onclick="toggleAutoRefresh()" id="autoRefreshBtn">⏸ Auto (3s)</button>
+            <button class="danger" onclick="toggleAnomaly(true)">🚨 Simulate Incident</button>
+            <button class="success" onclick="toggleAnomaly(false)">✅ Clear Incident</button>
+        </div>
+
+        <div class="dashboard" id="metricsGrid"></div>
+
+        <div class="section" id="incidentsSection" style="display:none">
+            <div class="incidents-banner" id="incidentsBanner"></div>
+        </div>
+
+        <div class="section">
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">📜 Live Logs</div>
+                    <div class="panel-body" id="logsPanel">
+                        <div class="empty-state">Fetching logs...</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">📋 Remediation History</div>
+                    <div class="panel-body" id="historyPanel">
+                        <div class="empty-state">No actions recorded yet</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -278,15 +657,15 @@
         const BASE_URL = window.location.origin;
         let autoRefresh = true;
         let refreshInterval;
+        const history = {}; // metric name -> array of recent values
 
-        // Metric card config
         const METRIC_CONFIG = [
             { key: 'cpu_percent', label: 'CPU', unit: '%', warn: 60, crit: 80 },
             { key: 'memory_percent', label: 'Memory', unit: '%', warn: 70, crit: 85 },
             { key: 'disk_percent', label: 'Disk', unit: '%', warn: 75, crit: 90 },
             { key: 'error_rate_percent', label: 'Error Rate', unit: '%', warn: 2, crit: 5 },
             { key: 'latency_p99_ms', label: 'P99 Latency', unit: 'ms', warn: 200, crit: 500 },
-            { key: 'request_rate_rps', label: 'Req/s', unit: '', warn: null, crit: null },
+            { key: 'request_rate_rps', label: 'Requests/s', unit: '', warn: null, crit: null },
         ];
 
         function getStatusClass(value, warn, crit) {
@@ -302,29 +681,47 @@
             for (const config of METRIC_CONFIG) {
                 const val = metrics[config.key];
                 const cls = getStatusClass(val, config.warn, config.crit);
+                const cardCls = cls === 'critical' ? 'critical-card' : '';
+
+                // Track history for sparklines
+                if (!history[config.key]) history[config.key] = [];
+                history[config.key].push(val);
+                if (history[config.key].length > 12) history[config.key].shift();
+
+                const maxVal = Math.max(...history[config.key], 1);
+                const bars = history[config.key].map(v => {
+                    const h = Math.max((v / maxVal) * 28, 2);
+                    const barCls = config.crit && v >= config.crit ? 'critical-bar' : (config.warn && v >= config.warn ? 'warning-bar' : '');
+                    return `<div class="bar ${barCls}" style="height:${h}px"></div>`;
+                }).join('');
+
                 const threshold = config.crit ? `Threshold: ${config.crit}${config.unit}` : '';
+
                 html += `
-                    <div class="metric-card">
-                        <div class="label">${config.label}</div>
-                        <div class="value ${cls}">${val.toFixed(1)}${config.unit}</div>
-                        <div class="threshold">${threshold}</div>
-                    </div>`;
+                <div class="metric-card ${cardCls} fade-in">
+                    <div class="label">${config.label}</div>
+                    <div class="value ${cls}">${val.toFixed(1)}<span style="font-size:14px;font-weight:500">${config.unit}</span></div>
+                    <div class="sparkline">${bars}</div>
+                    <div class="threshold">${threshold}</div>
+                </div>`;
             }
 
             // Pods card
+            const podCls = metrics.pods_running < metrics.pods_desired ? 'critical-card' : '';
             html += `
-                <div class="metric-card">
-                    <div class="label">Pods</div>
-                    <div class="value ${metrics.pods_running < metrics.pods_desired ? 'critical' : ''}">${metrics.pods_running}/${metrics.pods_desired}</div>
-                    <div class="threshold">Running / Desired</div>
-                </div>`;
+            <div class="metric-card ${podCls} fade-in">
+                <div class="label">Pods</div>
+                <div class="value ${metrics.pods_running < metrics.pods_desired ? 'critical' : ''}">${metrics.pods_running}<span style="font-size:14px;font-weight:500;color:#475569">/${metrics.pods_desired}</span></div>
+                <div class="sparkline"></div>
+                <div class="threshold">Running / Desired</div>
+            </div>`;
 
             grid.innerHTML = html;
         }
 
         function renderIncidents(incidents) {
             const section = document.getElementById('incidentsSection');
-            const tbody = document.querySelector('#incidentsTable tbody');
+            const banner = document.getElementById('incidentsBanner');
 
             if (!incidents || incidents.length === 0) {
                 section.style.display = 'none';
@@ -332,85 +729,76 @@
             }
 
             section.style.display = 'block';
-            tbody.innerHTML = incidents.map(i => `
-                <tr>
-                    <td>${i.type}</td>
-                    <td class="severity-${i.severity}">${i.severity.toUpperCase()}</td>
-                    <td>${i.value}</td>
-                </tr>
+            banner.innerHTML = `<h2 style="font-size:13px;color:#ef4444;margin-bottom:8px;letter-spacing:1px">🚨 ACTIVE INCIDENTS (${incidents.length})</h2>` +
+                incidents.map(i => `
+                <div class="incident-row">
+                    <span class="incident-type">${i.type.replace(/_/g, ' ')}</span>
+                    <span class="incident-severity severity-${i.severity}">${i.severity}</span>
+                    <span class="incident-value">${i.value}</span>
+                </div>
             `).join('');
         }
 
         function renderStatus(overall) {
             const badge = document.getElementById('statusBadge');
-            badge.textContent = overall;
             badge.className = 'status-badge';
-            if (overall === 'HEALTHY') badge.classList.add('status-healthy');
-            else if (overall === 'CRITICAL') badge.classList.add('status-critical');
-            else badge.classList.add('status-degraded');
+            if (overall === 'HEALTHY') { badge.classList.add('status-healthy'); }
+            else if (overall === 'CRITICAL') { badge.classList.add('status-critical'); }
+            else { badge.classList.add('status-degraded'); }
+            badge.innerHTML = `<span class="status-dot"></span>${overall}`;
         }
 
         async function fetchData() {
             try {
-                // Fetch metrics
                 const metricsRes = await fetch(`${BASE_URL}/api/metrics`);
                 const metrics = await metricsRes.json();
                 renderMetrics(metrics);
 
-                // Detect incidents client-side
                 const incidents = [];
                 if (metrics.cpu_percent > 80) incidents.push({ type: 'HIGH_CPU', severity: 'critical', value: metrics.cpu_percent.toFixed(1) + '%' });
                 if (metrics.memory_percent > 85) incidents.push({ type: 'HIGH_MEMORY', severity: 'critical', value: metrics.memory_percent.toFixed(1) + '%' });
                 if (metrics.disk_percent > 90) incidents.push({ type: 'HIGH_DISK', severity: 'warning', value: metrics.disk_percent.toFixed(1) + '%' });
                 if (metrics.error_rate_percent > 5) incidents.push({ type: 'HIGH_ERROR_RATE', severity: 'critical', value: metrics.error_rate_percent.toFixed(1) + '%' });
                 if (metrics.pods_running < metrics.pods_desired) incidents.push({ type: 'POD_SHORTAGE', severity: 'warning', value: `${metrics.pods_running}/${metrics.pods_desired}` });
+                if (metrics.latency_p99_ms > 500) incidents.push({ type: 'HIGH_LATENCY', severity: 'warning', value: `${metrics.latency_p99_ms.toFixed(0)}ms` });
 
                 renderIncidents(incidents);
                 renderStatus(incidents.length === 0 ? 'HEALTHY' : (incidents.some(i => i.severity === 'critical') ? 'CRITICAL' : 'DEGRADED'));
 
-                // Fetch logs
-                const logsRes = await fetch(`${BASE_URL}/api/logs?limit=15`);
+                const logsRes = await fetch(`${BASE_URL}/api/logs?limit=20`);
                 const logsData = await logsRes.json();
                 renderLogs(logsData.logs || []);
 
-                // Fetch history
                 const histRes = await fetch(`${BASE_URL}/api/history`);
                 const histData = await histRes.json();
                 renderHistory(histData.history || []);
 
-                document.getElementById('lastUpdate').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('lastUpdate').textContent = `Updated ${new Date().toLocaleTimeString()}`;
             } catch (err) {
-                console.error('Fetch error:', err);
                 document.getElementById('lastUpdate').textContent = `Error: ${err.message}`;
             }
         }
 
         function renderLogs(logs) {
             const panel = document.getElementById('logsPanel');
-            if (logs.length === 0) {
-                panel.innerHTML = '<div class="empty-state">No logs found</div>';
-                return;
-            }
-            panel.innerHTML = logs.map(l => 
-                `<div class="log-entry log-${l.level}">[${l.timestamp}] [${l.level.toUpperCase()}] [${l.service}] ${l.message}</div>`
+            if (logs.length === 0) { panel.innerHTML = '<div class="empty-state">No logs found</div>'; return; }
+            panel.innerHTML = logs.map(l =>
+                `<div class="log-entry log-${l.level}"><span class="log-ts">${l.timestamp}</span> <span class="log-svc">[${l.service}]</span> ${l.message}</div>`
             ).join('');
         }
 
-        function renderHistory(history) {
+        function renderHistory(hist) {
             const panel = document.getElementById('historyPanel');
-            if (history.length === 0) {
-                panel.innerHTML = '<div class="empty-state">No remediation actions yet</div>';
-                return;
-            }
-            panel.innerHTML = history.map(h => `
-                <div class="history-item">
-                    <div>
-                        <span class="action-name">${h.action}</span>
-                        <div class="result">${h.result}</div>
-                    </div>
-                    <span class="time">${new Date(h.timestamp).toLocaleString()}</span>
+            if (hist.length === 0) { panel.innerHTML = '<div class="empty-state">No remediation actions yet</div>'; return; }
+            panel.innerHTML = hist.map(h => `
+            <div class="history-item">
+                <div class="history-top">
+                    <span class="history-action">${h.action}</span>
+                    <span class="history-time">${new Date(h.timestamp).toLocaleString()}</span>
                 </div>
-            `).join('');
+                <div class="history-result">${h.result}</div>
+            </div>
+        `).join('');
         }
 
         async function toggleAnomaly(enabled) {
@@ -421,31 +809,24 @@
                     body: JSON.stringify({ enabled }),
                 });
                 fetchData();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
+            } catch (err) { alert('Error: ' + err.message); }
         }
 
         function toggleAutoRefresh() {
             autoRefresh = !autoRefresh;
             const btn = document.getElementById('autoRefreshBtn');
-            if (autoRefresh) {
-                btn.textContent = '⏸️ Auto (5s)';
-                startAutoRefresh();
-            } else {
-                btn.textContent = '▶️ Auto (off)';
-                clearInterval(refreshInterval);
-            }
+            if (autoRefresh) { btn.textContent = '⏸ Auto (3s)'; startAutoRefresh(); }
+            else { btn.textContent = '▶ Auto (off)'; clearInterval(refreshInterval); }
         }
 
         function startAutoRefresh() {
             clearInterval(refreshInterval);
-            refreshInterval = setInterval(fetchData, 5000);
+            refreshInterval = setInterval(fetchData, 3000);
         }
 
-        // Initial load
         fetchData();
         startAutoRefresh();
     </script>
 </body>
+
 </html>
