@@ -1,0 +1,10 @@
+# Create a .dockerignore to keep Docker image small
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+docs
+tests
+observability
+*.md

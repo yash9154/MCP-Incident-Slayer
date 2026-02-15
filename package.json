@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "mcp": "node mcp-server.js",
     "dev": "node --watch server.js",
     "test": "jest --verbose --forceExit --detectOpenHandles",
     "cli": "node cli.js",
@@ -22,6 +23,7 @@
   "author": "MCP Incident Slayer Team",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "chalk": "^4.1.2",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
